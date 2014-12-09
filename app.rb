@@ -4,17 +4,14 @@ Dotenv.load
 require "google/api_client"
 require "google_drive"
 require 'retryable'
-require 'net/https'
-require 'uri'
 require 'mechanize'
 
 google_spreadshet_key = ENV['GOOGLE_SPREADSHEET_KEY']
 
-puts "google_spreadshet_key #{google_spreadshet_key}"
 agent = Mechanize.new
 agent.follow_meta_refresh = true
 
-# Authorizes with OAuth and gets an access token.
+# Authorizes with OAuth 
 client = Google::APIClient.new(application_name: 'Randomize List', application_version: '0.1')
 auth = client.authorization
 auth.client_id = ENV['GOOGLE_CLIENT_ID']
@@ -25,7 +22,6 @@ auth.scope =
     "https://docs.googleusercontent.com/ " +
     "https://spreadsheets.google.com/feeds/"
 auth.redirect_uri = "http://www.example.com/oauth2callback"
-#auth.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
 
 auth_code = ""
 result = agent.get(auth.authorization_uri)
@@ -34,6 +30,7 @@ form = result.form_with(action: "https://accounts.google.com/ServiceLoginAuth")
 form['Email'] = ENV['GOOGLE_USERNAME']
 form['Passwd'] = ENV['GOOGLE_PASSWORD']
 
+#We are redirecting to a 404 URL, so catch that error and pull the auth_code of out it
 begin
 	result = form.submit
 rescue => e
@@ -58,7 +55,6 @@ for row in 1..ws.num_rows
 end
 
 not_randomized.shuffle.each_with_index do |row, index|
-	puts "row: #{row} index: #{index+1}"
 	ws[index+1, 1] = row
   Retryable.retryable(:tries => 3) do
   	ws.save
